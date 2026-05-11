@@ -1,0 +1,146 @@
+import { useRef, useCallback } from 'react';
+import { useEditorStore } from '@/store/editorStore';
+import { rgbToHex, getContrastColor } from '@/utils/colorUtils';
+import { Download, RefreshCw } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import { FontType } from '@/types';
+
+export function PreviewCanvas() {
+  const previewRef = useRef<HTMLDivElement>(null);
+  const { originalImage, colors, badge, layoutInfo, reset } = useEditorStore();
+
+  const handleExport = useCallback(async () => {
+    if (!previewRef.current) return;
+    
+    try {
+      const canvas = await html2canvas(previewRef.current, {
+        scale: 2,
+        backgroundColor: null,
+        useCORS: true,
+        logging: false
+      });
+      
+      const link = document.createElement('a');
+      link.download = `color-walk-${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('导出失败，请重试');
+    }
+  }, []);
+
+  if (!originalImage || !colors) {
+    return (
+      <div className="flex items-center justify-center h-full min-h-[400px] bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+        <div className="text-center text-gray-400">
+          <RefreshCw size={48} className="mx-auto mb-4 opacity-50" />
+          <p className="text-lg font-medium">上传图片开始创作</p>
+          <p className="text-sm mt-2">支持 JPG、PNG 格式</p>
+        </div>
+      </div>
+    );
+  }
+
+  const dominantColor = rgbToHex(colors.dominant);
+  const textColor = getContrastColor(colors.dominant);
+
+  // 获取字体类名
+  const getFontClass = (font: FontType) => {
+    switch (font) {
+      case 'serif':
+        return 'font-serif';
+      case 'mono':
+        return 'font-mono';
+      default:
+        return 'font-sans';
+    }
+  };
+
+  // 格式化月份显示（添加年份）
+  const formatMonth = (month: string) => {
+    return `2026, ${month}`;
+  };
+
+  // 固定上下布局：上半部分色块+徽章+信息，下半部分图片（3:4比例）
+  const FixedLayout = () => (
+    <div
+      className="relative w-full aspect-[3/4] flex flex-col overflow-hidden"
+    >
+      {/* 上半部分：色块 + 徽章 + 信息 (1/2) */}
+      <div 
+        className="h-1/2 flex flex-col items-center justify-center px-8 relative"
+        style={{ backgroundColor: dominantColor }}
+      >
+        {/* 徽章 - 上方 */}
+        {badge && (
+          <div className="mb-4">
+            <img
+              src={badge.imageData}
+              alt="Badge"
+              className="w-32 h-32 object-contain drop-shadow-lg"
+            />
+          </div>
+        )}
+        
+        {/* 地点和月份 - 徽章下方居中 */}
+        <div className={`text-center ${getFontClass(layoutInfo.font)}`}>
+          <p 
+            className="text-xl font-light tracking-widest uppercase"
+            style={{ color: textColor }}
+          >
+            {layoutInfo.location || 'YOUR LOCATION'}
+          </p>
+          <p 
+            className="text-sm mt-2 opacity-80 uppercase"
+            style={{ color: textColor }}
+          >
+            {formatMonth(layoutInfo.month)}
+          </p>
+        </div>
+      </div>
+      
+      {/* 下半部分：用户图片 (1/2) - 自动居中裁切 */}
+      <div className="h-1/2 bg-gray-100 overflow-hidden relative">
+        <img
+          src={originalImage}
+          alt="Main"
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ objectPosition: 'center center' }}
+        />
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      {/* 预览区域 */}
+      <div className="relative">
+        <div 
+          ref={previewRef}
+          className="w-full max-w-2xl mx-auto rounded-2xl overflow-hidden shadow-2xl"
+        >
+          <FixedLayout />
+        </div>
+      </div>
+      
+      {/* 操作按钮 */}
+      <div className="flex gap-3 justify-center">
+        <button
+          onClick={handleExport}
+          className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-medium transition-all hover:shadow-lg hover:-translate-y-0.5"
+        >
+          <Download size={18} />
+          导出图片
+        </button>
+        <button
+          onClick={reset}
+          className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-gray-200 hover:border-purple-300 text-gray-700 rounded-xl font-medium transition-all"
+        >
+          <RefreshCw size={18} />
+          重新开始
+        </button>
+      </div>
+    </div>
+  );
+}
