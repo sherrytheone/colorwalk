@@ -5,48 +5,25 @@ import { Download, RefreshCw, MoveVertical } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { FontType } from '@/types';
 
-export function PreviewCanvas() {
-  const previewRef = useRef<HTMLDivElement>(null);
-  const { originalImage, colors, badge, layoutInfo, reset, setImagePosition } = useEditorStore();
+// 固定上下布局组件
+interface FixedLayoutProps {
+  originalImage: string;
+  dominantColor: string;
+  textColor: string;
+  badge: { imageData: string } | null;
+  layoutInfo: {
+    location: string;
+    month: string;
+    font: FontType;
+    imagePosition: { x: number; y: number };
+  };
+}
+
+function FixedLayout({ originalImage, dominantColor, textColor, badge, layoutInfo }: FixedLayoutProps) {
+  const { setImagePosition } = useEditorStore();
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartY, setDragStartY] = useState(0);
   const [initialPositionY, setInitialPositionY] = useState(50);
-
-  const handleExport = useCallback(async () => {
-    if (!previewRef.current) return;
-    
-    try {
-      const canvas = await html2canvas(previewRef.current, {
-        scale: 2,
-        backgroundColor: null,
-        useCORS: true,
-        logging: false
-      });
-      
-      const link = document.createElement('a');
-      link.download = `color-walk-${Date.now()}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    } catch (error) {
-      console.error('Export failed:', error);
-      alert('导出失败，请重试');
-    }
-  }, []);
-
-  if (!originalImage || !colors) {
-    return (
-      <div className="flex items-center justify-center h-full min-h-[400px] bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
-        <div className="text-center text-gray-400">
-          <RefreshCw size={48} className="mx-auto mb-4 opacity-50" />
-          <p className="text-lg font-medium">上传图片开始创作</p>
-          <p className="text-sm mt-2">支持 JPG、PNG 格式</p>
-        </div>
-      </div>
-    );
-  }
-
-  const dominantColor = rgbToHex(colors.dominant);
-  const textColor = getContrastColor(colors.dominant);
 
   // 获取字体类名
   const getFontClass = (font: FontType) => {
@@ -78,7 +55,7 @@ export function PreviewCanvas() {
     e.preventDefault();
     
     const deltaY = e.clientY - dragStartY;
-    const containerHeight = 400; // 预估容器高度的一半
+    const containerHeight = 400;
     const newY = Math.max(0, Math.min(100, initialPositionY + (deltaY / containerHeight) * 100));
     
     setImagePosition({ x: layoutInfo.imagePosition.x, y: newY });
@@ -88,11 +65,8 @@ export function PreviewCanvas() {
     setIsDragging(false);
   }, []);
 
-  // 固定上下布局：上半部分色块+徽章+信息，下半部分图片（3:4比例）
-  const FixedLayout = () => (
-    <div
-      className="relative w-full aspect-[3/4] flex flex-col overflow-hidden"
-    >
+  return (
+    <div className="relative w-full aspect-[3/4] flex flex-col overflow-hidden">
       {/* 上半部分：色块 + 徽章 + 信息 (1/2) */}
       <div 
         className="h-1/2 flex flex-col items-center justify-center px-8 relative"
@@ -155,6 +129,47 @@ export function PreviewCanvas() {
       </div>
     </div>
   );
+}
+
+export function PreviewCanvas() {
+  const previewRef = useRef<HTMLDivElement>(null);
+  const { originalImage, colors, badge, layoutInfo, reset } = useEditorStore();
+
+  const handleExport = useCallback(async () => {
+    if (!previewRef.current) return;
+    
+    try {
+      const canvas = await html2canvas(previewRef.current, {
+        scale: 2,
+        backgroundColor: null,
+        useCORS: true,
+        logging: false
+      });
+      
+      const link = document.createElement('a');
+      link.download = `color-walk-${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('导出失败，请重试');
+    }
+  }, []);
+
+  if (!originalImage || !colors) {
+    return (
+      <div className="flex items-center justify-center h-full min-h-[400px] bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+        <div className="text-center text-gray-400">
+          <RefreshCw size={48} className="mx-auto mb-4 opacity-50" />
+          <p className="text-lg font-medium">上传图片开始创作</p>
+          <p className="text-sm mt-2">支持 JPG、PNG 格式</p>
+        </div>
+      </div>
+    );
+  }
+
+  const dominantColor = rgbToHex(colors.dominant);
+  const textColor = getContrastColor(colors.dominant);
 
   return (
     <div className="space-y-4">
@@ -164,7 +179,13 @@ export function PreviewCanvas() {
           ref={previewRef}
           className="w-full max-w-2xl mx-auto rounded-2xl overflow-hidden shadow-2xl"
         >
-          <FixedLayout />
+          <FixedLayout 
+            originalImage={originalImage}
+            dominantColor={dominantColor}
+            textColor={textColor}
+            badge={badge}
+            layoutInfo={layoutInfo}
+          />
         </div>
       </div>
       
