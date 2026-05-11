@@ -20,12 +20,19 @@ export type TemplateType = 'classic' | 'split' | 'vertical';
 // 字体类型
 export type FontType = 'sans' | 'serif' | 'mono';
 
+// 图片位置信息
+export interface ImagePosition {
+  x: number;
+  y: number;
+}
+
 // 排版信息
 export interface LayoutInfo {
   location: string;
   month: string;
   template: TemplateType;
   font: FontType;
+  imagePosition: ImagePosition;
 }
 
 // 编辑器状态

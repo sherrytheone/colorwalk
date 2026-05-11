@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { EditorState, LayoutInfo, Badge, ColorPalette, TemplateType, FontType } from '@/types';
+import { EditorState, LayoutInfo, Badge, ColorPalette, TemplateType, FontType, ImagePosition } from '@/types';
 
 const currentMonth = new Date().toLocaleString('en-US', { month: 'long' }).toUpperCase();
 
@@ -9,6 +9,7 @@ interface EditorStore extends EditorState {
   setBadge: (badge: Badge | null) => void;
   setLayoutInfo: (info: Partial<LayoutInfo>) => void;
   setFont: (font: FontType) => void;
+  setImagePosition: (position: ImagePosition) => void;
   reset: () => void;
 }
 
@@ -20,7 +21,8 @@ const initialState: EditorState = {
     location: '',
     month: currentMonth,
     template: 'classic' as TemplateType,
-    font: 'sans' as FontType
+    font: 'sans' as FontType,
+    imagePosition: { x: 50, y: 50 }
   }
 };
 
@@ -39,6 +41,10 @@ export const useEditorStore = create<EditorStore>((set) => ({
 
   setFont: (font) => set((state) => ({
     layoutInfo: { ...state.layoutInfo, font }
+  })),
+
+  setImagePosition: (position) => set((state) => ({
+    layoutInfo: { ...state.layoutInfo, imagePosition: position }
   })),
 
   reset: () => set(initialState)

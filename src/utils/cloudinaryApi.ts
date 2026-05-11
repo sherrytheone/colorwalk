@@ -8,7 +8,7 @@ const UPLOAD_PRESET = 'color_walk_upload';
  * @param maxRetries 最大重试次数
  * @returns 上传后的图片 URL
  */
-export async function uploadToCloudinary(file: File, maxRetries: number = 3): Promise<string> {
+export async function uploadToCloudinary(file: File, maxRetries: number = 5): Promise<string> {
   console.log('开始上传到 Cloudinary...');
   
   const formData = new FormData();
@@ -23,7 +23,7 @@ export async function uploadToCloudinary(file: File, maxRetries: number = 3): Pr
     
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60秒超时
 
       const response = await fetch(
         `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,

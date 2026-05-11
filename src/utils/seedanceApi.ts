@@ -86,19 +86,23 @@ export async function generateBadgeWithSeedance(imageUrl: string): Promise<strin
 
 /**
  * 将 URL 转换为 base64，并去除白色背景（抠图）
- * 使用代理避免 CORS 问题
+ * 开发环境使用代理，生产环境直接请求
  */
 export async function urlToBase64WithTransparentBackground(url: string): Promise<string> {
   console.log('开始转换 URL 到 base64 并抠图:', url.substring(0, 50) + '...');
 
   try {
-    // 将外部 URL 转换为代理 URL
+    // 将外部 URL 转换为代理 URL（仅在开发环境）
     let fetchUrl = url;
-    if (url.includes('tos-cn-beijing.volces.com')) {
-      // 使用 Vite 代理
+    const isDev = import.meta.env.DEV;
+    
+    if (isDev && url.includes('tos-cn-beijing.volces.com')) {
+      // 开发环境使用 Vite 代理
       const urlObj = new URL(url);
       fetchUrl = '/seedance-image' + urlObj.pathname + urlObj.search;
-      console.log('使用代理 URL:', fetchUrl);
+      console.log('开发环境使用代理 URL:', fetchUrl);
+    } else {
+      console.log('生产环境直接请求 URL:', fetchUrl);
     }
 
     const response = await fetch(fetchUrl);
@@ -181,19 +185,23 @@ export async function urlToBase64WithTransparentBackground(url: string): Promise
 
 /**
  * 将 URL 转换为 base64（保留原样，不抠图）
- * 使用代理避免 CORS 问题
+ * 开发环境使用代理，生产环境直接请求
  */
 export async function urlToBase64(url: string): Promise<string> {
   console.log('开始转换 URL 到 base64:', url.substring(0, 50) + '...');
 
   try {
-    // 将外部 URL 转换为代理 URL
+    // 将外部 URL 转换为代理 URL（仅在开发环境）
     let fetchUrl = url;
-    if (url.includes('tos-cn-beijing.volces.com')) {
-      // 使用 Vite 代理
+    const isDev = import.meta.env.DEV;
+    
+    if (isDev && url.includes('tos-cn-beijing.volces.com')) {
+      // 开发环境使用 Vite 代理
       const urlObj = new URL(url);
       fetchUrl = '/seedance-image' + urlObj.pathname + urlObj.search;
-      console.log('使用代理 URL:', fetchUrl);
+      console.log('开发环境使用代理 URL:', fetchUrl);
+    } else {
+      console.log('生产环境直接请求 URL:', fetchUrl);
     }
 
     const response = await fetch(fetchUrl);

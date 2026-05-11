@@ -1,13 +1,16 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useState, MouseEvent as ReactMouseEvent } from 'react';
 import { useEditorStore } from '@/store/editorStore';
 import { rgbToHex, getContrastColor } from '@/utils/colorUtils';
-import { Download, RefreshCw } from 'lucide-react';
+import { Download, RefreshCw, MoveVertical } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { FontType } from '@/types';
 
 export function PreviewCanvas() {
   const previewRef = useRef<HTMLDivElement>(null);
-  const { originalImage, colors, badge, layoutInfo, reset } = useEditorStore();
+  const { originalImage, colors, badge, layoutInfo, reset, setImagePosition } = useEditorStore();
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartY, setDragStartY] = useState(0);
+  const [initialPositionY, setInitialPositionY] = useState(50);
 
   const handleExport = useCallback(async () => {
     if (!previewRef.current) return;
@@ -62,6 +65,29 @@ export function PreviewCanvas() {
     return `2026, ${month}`;
   };
 
+  // 处理图片拖动
+  const handleMouseDown = useCallback((e: ReactMouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+    setDragStartY(e.clientY);
+    setInitialPositionY(layoutInfo.imagePosition.y);
+  }, [layoutInfo.imagePosition.y]);
+
+  const handleMouseMove = useCallback((e: ReactMouseEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    
+    const deltaY = e.clientY - dragStartY;
+    const containerHeight = 400; // 预估容器高度的一半
+    const newY = Math.max(0, Math.min(100, initialPositionY + (deltaY / containerHeight) * 100));
+    
+    setImagePosition({ x: layoutInfo.imagePosition.x, y: newY });
+  }, [isDragging, dragStartY, initialPositionY, layoutInfo.imagePosition.x, setImagePosition]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
   // 固定上下布局：上半部分色块+徽章+信息，下半部分图片（3:4比例）
   const FixedLayout = () => (
     <div
@@ -78,7 +104,7 @@ export function PreviewCanvas() {
             <img
               src={badge.imageData}
               alt="Badge"
-              className="w-32 h-32 object-contain drop-shadow-lg"
+              className="w-64 h-64 object-contain drop-shadow-lg"
             />
           </div>
         )}
@@ -100,14 +126,32 @@ export function PreviewCanvas() {
         </div>
       </div>
       
-      {/* 下半部分：用户图片 (1/2) - 自动居中裁切 */}
-      <div className="h-1/2 bg-gray-100 overflow-hidden relative">
+      {/* 下半部分：用户图片 (1/2) - 可拖动调整位置 */}
+      <div 
+        className={`h-1/2 bg-gray-100 overflow-hidden relative ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        title="拖动调整图片位置"
+      >
         <img
           src={originalImage}
           alt="Main"
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ objectPosition: 'center center' }}
+          className="absolute w-full h-auto min-h-full"
+          style={{ 
+            objectFit: 'cover',
+            top: `${layoutInfo.imagePosition.y}%`,
+            left: '50%',
+            transform: `translate(-50%, -${layoutInfo.imagePosition.y}%)`,
+            transition: isDragging ? 'none' : 'top 0.1s ease-out'
+          }}
         />
+        {/* 拖动提示 */}
+        <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 pointer-events-none">
+          <MoveVertical size={12} />
+          拖动调整
+        </div>
       </div>
     </div>
   );
