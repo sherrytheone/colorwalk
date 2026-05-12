@@ -17,9 +17,10 @@ interface FixedLayoutProps {
     font: FontType;
     imagePosition: { x: number; y: number };
   };
+  isPreview?: boolean;
 }
 
-function FixedLayout({ originalImage, dominantColor, textColor, badge, layoutInfo }: FixedLayoutProps) {
+function FixedLayout({ originalImage, dominantColor, textColor, badge, layoutInfo, isPreview = false }: FixedLayoutProps) {
   const { setImagePosition } = useEditorStore();
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartY, setDragStartY] = useState(0);
@@ -44,14 +45,15 @@ function FixedLayout({ originalImage, dominantColor, textColor, badge, layoutInf
 
   // 处理图片拖动
   const handleMouseDown = useCallback((e: ReactMouseEvent<HTMLDivElement>) => {
+    if (!isPreview) return;
     e.preventDefault();
     setIsDragging(true);
     setDragStartY(e.clientY);
     setInitialPositionY(layoutInfo.imagePosition.y);
-  }, [layoutInfo.imagePosition.y]);
+  }, [isPreview, layoutInfo.imagePosition.y]);
 
   const handleMouseMove = useCallback((e: ReactMouseEvent<HTMLDivElement>) => {
-    if (!isDragging) return;
+    if (!isPreview || !isDragging) return;
     e.preventDefault();
     
     const deltaY = e.clientY - dragStartY;
@@ -59,7 +61,7 @@ function FixedLayout({ originalImage, dominantColor, textColor, badge, layoutInf
     const newY = Math.max(0, Math.min(100, initialPositionY + (deltaY / containerHeight) * 100));
     
     setImagePosition({ x: layoutInfo.imagePosition.x, y: newY });
-  }, [isDragging, dragStartY, initialPositionY, layoutInfo.imagePosition.x, setImagePosition]);
+  }, [isPreview, isDragging, dragStartY, initialPositionY, layoutInfo.imagePosition.x, setImagePosition]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
@@ -102,30 +104,29 @@ function FixedLayout({ originalImage, dominantColor, textColor, badge, layoutInf
       
       {/* 下半部分：用户图片 (1/2) - 可拖动调整位置 */}
       <div 
-        className={`h-1/2 bg-gray-100 overflow-hidden relative ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        className={`h-1/2 bg-gray-100 overflow-hidden relative ${isPreview ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        title="拖动调整图片位置"
+        title={isPreview ? "拖动调整图片位置" : undefined}
       >
         <img
           src={originalImage}
           alt="Main"
-          className="absolute w-full h-auto min-h-full"
+          className="absolute w-full h-full object-cover"
           style={{ 
-            objectFit: 'cover',
-            top: `${layoutInfo.imagePosition.y}%`,
-            left: '50%',
-            transform: `translate(-50%, -${layoutInfo.imagePosition.y}%)`,
-            transition: isDragging ? 'none' : 'top 0.1s ease-out'
+            objectPosition: `center ${layoutInfo.imagePosition.y}%`,
+            transition: isDragging ? 'none' : 'object-position 0.1s ease-out'
           }}
         />
-        {/* 拖动提示 */}
-        <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 pointer-events-none">
-          <MoveVertical size={12} />
-          拖动调整
-        </div>
+        {/* 拖动提示 - 只在预览时显示 */}
+        {isPreview && (
+          <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 pointer-events-none">
+            <MoveVertical size={12} />
+            拖动调整
+          </div>
+        )}
       </div>
     </div>
   );
@@ -133,13 +134,14 @@ function FixedLayout({ originalImage, dominantColor, textColor, badge, layoutInf
 
 export function PreviewCanvas() {
   const previewRef = useRef<HTMLDivElement>(null);
+  const exportRef = useRef<HTMLDivElement>(null);
   const { originalImage, colors, badge, layoutInfo, reset } = useEditorStore();
 
   const handleExport = useCallback(async () => {
-    if (!previewRef.current) return;
+    if (!exportRef.current) return;
     
     try {
-      const canvas = await html2canvas(previewRef.current, {
+      const canvas = await html2canvas(exportRef.current, {
         scale: 2,
         backgroundColor: null,
         useCORS: true,
@@ -173,7 +175,7 @@ export function PreviewCanvas() {
 
   return (
     <div className="space-y-4">
-      {/* 预览区域 */}
+      {/* 预览区域 - 包含拖动功能 */}
       <div className="relative">
         <div 
           ref={previewRef}
@@ -185,6 +187,25 @@ export function PreviewCanvas() {
             textColor={textColor}
             badge={badge}
             layoutInfo={layoutInfo}
+            isPreview={true}
+          />
+        </div>
+      </div>
+
+      {/* 隐藏的导出区域 - 不包含拖动提示 */}
+      <div className="fixed -left-[9999px] top-0">
+        <div 
+          ref={exportRef}
+          className="w-[800px] rounded-2xl overflow-hidden"
+          style={{ aspectRatio: '3/4' }}
+        >
+          <FixedLayout 
+            originalImage={originalImage}
+            dominantColor={dominantColor}
+            textColor={textColor}
+            badge={badge}
+            layoutInfo={layoutInfo}
+            isPreview={false}
           />
         </div>
       </div>
