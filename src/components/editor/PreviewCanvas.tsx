@@ -76,12 +76,11 @@ function FixedLayout({ originalImage, dominantColor, textColor, badge, layoutInf
       >
         {/* 徽章 - 上方 */}
         {badge && (
-          <div className="mb-4 flex-shrink-0">
+          <div className="mb-2 flex-shrink-0">
             <img
               src={badge.imageData}
               alt="Badge"
-              className="w-32 h-32 md:w-48 md:h-48 lg:w-56 lg:h-56 object-contain drop-shadow-lg"
-              style={{ maxWidth: '100%', maxHeight: '40%' }}
+              className="w-64 h-64 object-contain drop-shadow-lg"
             />
           </div>
         )}

@@ -3,7 +3,6 @@ import { Upload, X, ImageIcon, Loader2, Cloud } from 'lucide-react';
 import { useEditorStore } from '@/store/editorStore';
 import { generateBadgeWithSeedance, urlToBase64WithTransparentBackground } from '@/utils/seedanceApi';
 import { uploadToCloudinary } from '@/utils/cloudinaryApi';
-import { compressImage } from '@/utils/imageCompression';
 
 export function ImageUploader() {
   const { originalImage, setOriginalImage, setColors, setBadge, reset } = useEditorStore();
@@ -47,22 +46,6 @@ export function ImageUploader() {
           console.log('颜色提取完成:', dominant);
           setColors({ dominant, palette });
 
-          // 压缩图片
-          console.log('开始压缩图片...');
-          let fileToUpload: File | Blob = file;
-          try {
-            const compressedBlob = await compressImage(file, 1200, 0.8);
-            // 如果压缩后小于原图，使用压缩版本
-            if (compressedBlob.size < file.size * 0.9) {
-              console.log(`使用压缩后的图片: ${(file.size / 1024 / 1024).toFixed(2)}MB -> ${(compressedBlob.size / 1024 / 1024).toFixed(2)}MB`);
-              fileToUpload = compressedBlob;
-            } else {
-              console.log('压缩效果不明显，使用原图');
-            }
-          } catch (compressError) {
-            console.warn('图片压缩失败，使用原图:', compressError);
-          }
-
           // 上传到 Cloudinary 获取公开 URL
           console.log('开始上传到 Cloudinary...');
           setIsUploading(false);
@@ -70,7 +53,7 @@ export function ImageUploader() {
           
           let cloudinaryUrl: string;
           try {
-            cloudinaryUrl = await uploadToCloudinary(fileToUpload as File);
+            cloudinaryUrl = await uploadToCloudinary(file);
             console.log('Cloudinary 上传成功，URL:', cloudinaryUrl);
             console.log('URL 类型检查 - 是否以 https 开头:', cloudinaryUrl.startsWith('https://'));
           } catch (uploadError) {
@@ -79,10 +62,6 @@ export function ImageUploader() {
             setIsGeneratingBadge(false);
             return;
           }
-
-          // 等待一段时间，确保 Cloudinary 图片完全可用
-          console.log('等待 Cloudinary 图片处理完成...');
-          await new Promise(resolve => setTimeout(resolve, 3000));
 
           // 调用 Seedance API 生成徽章（使用 Cloudinary URL）
           console.log('开始调用 Seedance API 生成徽章...');

@@ -36,46 +36,38 @@ export function adjustBrightness(rgb: [number, number, number], factor: number):
   }) as [number, number, number];
 }
 
-// 从图片提取主色调（取占比最大的颜色）
+// 从图片提取主色调（使用Canvas的简单实现）
 export function extractDominantColor(image: HTMLImageElement): [number, number, number] {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   if (!ctx) return [128, 128, 128];
-
+  
   // 缩小图片以提高性能
   const size = 50;
   canvas.width = size;
   canvas.height = size;
-
+  
   ctx.drawImage(image, 0, 0, size, size);
-
+  
   const imageData = ctx.getImageData(0, 0, size, size);
   const data = imageData.data;
-
-  const colorMap = new Map<string, number>();
-
-  // 统计所有像素颜色频率（量化到 16 个级别减少噪声）
-  for (let i = 0; i < data.length; i += 4) {
-    const r = Math.round(data[i] / 16) * 16;
-    const g = Math.round(data[i + 1] / 16) * 16;
-    const b = Math.round(data[i + 2] / 16) * 16;
-    const key = `${r},${g},${b}`;
-    colorMap.set(key, (colorMap.get(key) || 0) + 1);
+  
+  let r = 0, g = 0, b = 0;
+  let count = 0;
+  
+  // 采样像素
+  for (let i = 0; i < data.length; i += 16) {
+    r += data[i];
+    g += data[i + 1];
+    b += data[i + 2];
+    count++;
   }
-
-  // 找出出现频率最高的颜色
-  let maxCount = 0;
-  let dominantColor = '128,128,128';
-
-  for (const [color, count] of colorMap.entries()) {
-    if (count > maxCount) {
-      maxCount = count;
-      dominantColor = color;
-    }
-  }
-
-  const [r, g, b] = dominantColor.split(',').map(Number);
-  return [r, g, b];
+  
+  return [
+    Math.round(r / count),
+    Math.round(g / count),
+    Math.round(b / count)
+  ];
 }
 
 // 提取调色板
