@@ -18,9 +18,10 @@ interface FixedLayoutProps {
     imagePosition: { x: number; y: number };
   };
   isPreview?: boolean;
+  containerWidth?: number;
 }
 
-function FixedLayout({ originalImage, dominantColor, textColor, badge, layoutInfo, isPreview = false }: FixedLayoutProps) {
+function FixedLayout({ originalImage, dominantColor, textColor, badge, layoutInfo, isPreview = false, containerWidth = 800 }: FixedLayoutProps) {
   const { setImagePosition } = useEditorStore();
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartY, setDragStartY] = useState(0);
@@ -57,22 +58,34 @@ function FixedLayout({ originalImage, dominantColor, textColor, badge, layoutInf
     e.preventDefault();
     
     const deltaY = e.clientY - dragStartY;
-    const containerHeight = 400;
+    const containerHeight = containerWidth * 0.75; // 3/4 比例的一半
     const newY = Math.max(0, Math.min(100, initialPositionY + (deltaY / containerHeight) * 100));
     
     setImagePosition({ x: layoutInfo.imagePosition.x, y: newY });
-  }, [isPreview, isDragging, dragStartY, initialPositionY, layoutInfo.imagePosition.x, setImagePosition]);
+  }, [isPreview, isDragging, dragStartY, initialPositionY, layoutInfo.imagePosition.x, setImagePosition, containerWidth]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
   }, []);
 
+  // 计算徽章尺寸 - 保持正方形，最大 200px
+  const badgeSize = Math.min(200, containerWidth * 0.25);
+
   return (
-    <div className="relative w-full aspect-[3/4] flex flex-col overflow-hidden">
+    <div 
+      className="relative flex flex-col overflow-hidden"
+      style={{ 
+        width: containerWidth, 
+        height: containerWidth * 4 / 3 // 3:4 比例
+      }}
+    >
       {/* 上半部分：色块 + 徽章 + 信息 (1/2) */}
       <div 
-        className="h-1/2 flex flex-col items-center justify-center px-8 relative"
-        style={{ backgroundColor: dominantColor }}
+        className="flex flex-col items-center justify-center px-8 relative"
+        style={{ 
+          backgroundColor: dominantColor,
+          height: containerWidth * 2 / 3 // 一半高度
+        }}
       >
         {/* 徽章 - 上方 */}
         {badge && (
@@ -80,7 +93,12 @@ function FixedLayout({ originalImage, dominantColor, textColor, badge, layoutInf
             <img
               src={badge.imageData}
               alt="Badge"
-              className="w-64 h-64 object-contain drop-shadow-lg"
+              style={{
+                width: badgeSize,
+                height: badgeSize,
+                objectFit: 'contain'
+              }}
+              className="drop-shadow-lg"
             />
           </div>
         )}
@@ -88,14 +106,20 @@ function FixedLayout({ originalImage, dominantColor, textColor, badge, layoutInf
         {/* 地点和月份 - 徽章下方居中 */}
         <div className={`text-center ${getFontClass(layoutInfo.font)}`}>
           <p 
-            className="text-xl font-light tracking-widest uppercase"
-            style={{ color: textColor }}
+            className="font-light tracking-widest uppercase"
+            style={{ 
+              color: textColor,
+              fontSize: containerWidth * 0.03 // 响应式字体
+            }}
           >
             {layoutInfo.location || 'YOUR LOCATION'}
           </p>
           <p 
-            className="text-sm mt-2 opacity-80 uppercase"
-            style={{ color: textColor }}
+            className="mt-2 opacity-80 uppercase"
+            style={{ 
+              color: textColor,
+              fontSize: containerWidth * 0.02
+            }}
           >
             {formatMonth(layoutInfo.month)}
           </p>
@@ -104,7 +128,8 @@ function FixedLayout({ originalImage, dominantColor, textColor, badge, layoutInf
       
       {/* 下半部分：用户图片 (1/2) - 可拖动调整位置 */}
       <div 
-        className={`h-1/2 bg-gray-100 overflow-hidden relative ${isPreview ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
+        className={`bg-gray-100 overflow-hidden relative ${isPreview ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
+        style={{ height: containerWidth * 2 / 3 }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -114,8 +139,9 @@ function FixedLayout({ originalImage, dominantColor, textColor, badge, layoutInf
         <img
           src={originalImage}
           alt="Main"
-          className="absolute w-full h-full object-cover"
+          className="absolute w-full h-full"
           style={{ 
+            objectFit: 'cover',
             objectPosition: `center ${layoutInfo.imagePosition.y}%`,
             transition: isDragging ? 'none' : 'object-position 0.1s ease-out'
           }}
@@ -173,13 +199,17 @@ export function PreviewCanvas() {
   const dominantColor = rgbToHex(colors.dominant);
   const textColor = getContrastColor(colors.dominant);
 
+  // 预览容器宽度
+  const previewWidth = 600;
+  const exportWidth = 1200; // 导出用更高分辨率
+
   return (
     <div className="space-y-4">
       {/* 预览区域 - 包含拖动功能 */}
-      <div className="relative">
+      <div className="relative flex justify-center">
         <div 
           ref={previewRef}
-          className="w-full max-w-2xl mx-auto rounded-2xl overflow-hidden shadow-2xl"
+          className="rounded-2xl overflow-hidden shadow-2xl"
         >
           <FixedLayout 
             originalImage={originalImage}
@@ -188,6 +218,7 @@ export function PreviewCanvas() {
             badge={badge}
             layoutInfo={layoutInfo}
             isPreview={true}
+            containerWidth={previewWidth}
           />
         </div>
       </div>
@@ -196,8 +227,6 @@ export function PreviewCanvas() {
       <div className="fixed -left-[9999px] top-0">
         <div 
           ref={exportRef}
-          className="w-[800px] rounded-2xl overflow-hidden"
-          style={{ aspectRatio: '3/4' }}
         >
           <FixedLayout 
             originalImage={originalImage}
@@ -206,6 +235,7 @@ export function PreviewCanvas() {
             badge={badge}
             layoutInfo={layoutInfo}
             isPreview={false}
+            containerWidth={exportWidth}
           />
         </div>
       </div>
