@@ -139,11 +139,11 @@ export async function urlToBase64WithTransparentBackground(url: string): Promise
         const data = imageData.data;
         
         // 荧光绿色值 #9EFE54 -> RGB(158, 254, 84)
-        const greenScreenR = 158;
+        const greenScreenR = 197;
         const greenScreenG = 254;
-        const greenScreenB = 84;
+        const greenScreenB = 9;
         // 容差范围，允许一些颜色偏差（包括投影区域）
-        const tolerance = 80;
+        const tolerance = 200;
         
         // 遍历像素，将荧光绿背景变为透明
         for (let i = 0; i < data.length; i += 4) {

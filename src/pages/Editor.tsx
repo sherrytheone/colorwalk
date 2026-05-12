@@ -3,6 +3,7 @@ import { ColorExtractor } from '@/components/editor/ColorExtractor';
 import { BadgeGenerator } from '@/components/editor/BadgeGenerator';
 import { LocationInput } from '@/components/editor/LocationInput';
 import { MonthSelector } from '@/components/editor/MonthSelector';
+import { FontSelector } from '@/components/editor/FontSelector';
 import { PreviewCanvas } from '@/components/editor/PreviewCanvas';
 import { ArrowLeft, Sparkles, Wand2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -66,6 +67,7 @@ export default function Editor() {
                 <div className="space-y-4">
                   <LocationInput />
                   <MonthSelector />
+                  <FontSelector />
                 </div>
               </section>
             </div>
