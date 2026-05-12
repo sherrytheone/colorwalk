@@ -29,7 +29,7 @@ export async function generateBadgeWithSeedance(imageUrl: string): Promise<strin
 
   const requestBody = {
     model: MODEL,
-    prompt: '根据图片提取主体物，生成一个冰箱贴一样的图案。1、保留主体的核心轮廓和标志性特征；2、造型简洁、干净、像旅行纪念品冰箱贴；3、有轻微立体感和投影；4、边缘清晰；5、细节适度简化，不要画得太复杂；6、图标居中于整张图片；7、图标尺寸较小且精致；8、纯白背景（#FFFFFF），不要有其他颜色背景；9、整体风格可爱精致，适合作为旅行纪念徽章',
+    prompt: '从真实照片中提取最有识别度的主体建筑元素，例如窗户、门廊、立面、拱门、屋顶、阳台或建筑正面。 将该建筑元素转化为一个简约的“冰箱贴式建筑图标”： 1、保留建筑的核心轮廓和标志性特征； 2、造型简洁、干净、像旅行纪念品冰箱贴； 3、有轻微立体感； 4、边缘清晰，白色或浅色描边； 5、细节适度简化，不要画得太复杂； 6、图标位于画面居中位置； 7、图标尺寸适中且精致，周围保留大量留白。8、背景为绿幕的荧光绿色',
     image: imageUrl,
     sequential_image_generation: 'disabled',
     response_format: 'url',
@@ -138,22 +138,35 @@ export async function urlToBase64WithTransparentBackground(url: string): Promise
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
         
-        // 白色阈值（RGB 都大于这个值认为是白色背景）
-        const whiteThreshold = 240;
-        // 容差，允许一些浅色
-        const tolerance = 15;
+        // 荧光绿色值 #9EFE54 -> RGB(158, 254, 84)
+        const greenScreenR = 158;
+        const greenScreenG = 254;
+        const greenScreenB = 84;
+        // 基础容差
+        const baseTolerance = 60;
+        // 投影区域容差（更大）
+        const shadowTolerance = 200;
         
-        // 遍历像素，将白色背景变为透明
+        // 遍历像素，将荧光绿背景变为透明
         for (let i = 0; i < data.length; i += 4) {
           const r = data[i];
           const g = data[i + 1];
           const b = data[i + 2];
           
-          // 检查是否是白色或接近白色
-          const isWhite = r > whiteThreshold && g > whiteThreshold && b > whiteThreshold;
-          const isLight = Math.abs(r - g) < tolerance && Math.abs(g - b) < tolerance && Math.abs(r - b) < tolerance;
+          // 计算与目标荧光绿的欧几里得距离
+          const distance = Math.sqrt(
+            Math.pow(r - greenScreenR, 2) +
+            Math.pow(g - greenScreenG, 2) +
+            Math.pow(b - greenScreenB, 2)
+          );
           
-          if (isWhite && isLight) {
+          // 检查是否是绿色主导的颜色（绿幕背景或投影）
+          // 条件1：颜色距离在容差范围内
+          // 条件2：绿色通道明显强于红色和蓝色（绿色主导）
+          const isGreenDominant = g > r + 20 && g > b + 20;
+          const isNearGreenScreen = distance < shadowTolerance;
+          
+          if (isNearGreenScreen && isGreenDominant) {
             // 设置为透明
             data[i + 3] = 0;
           }
