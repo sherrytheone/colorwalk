@@ -1,11 +1,12 @@
 import { ImageUploader } from '@/components/editor/ImageUploader';
 import { ColorExtractor } from '@/components/editor/ColorExtractor';
+import { ColorPicker } from '@/components/editor/ColorPicker';
 import { BadgeGenerator } from '@/components/editor/BadgeGenerator';
 import { LocationInput } from '@/components/editor/LocationInput';
 import { MonthSelector } from '@/components/editor/MonthSelector';
 import { FontSelector } from '@/components/editor/FontSelector';
 import { PreviewCanvas } from '@/components/editor/PreviewCanvas';
-import { ArrowLeft, Sparkles, Wand2 } from 'lucide-react';
+import { ArrowLeft, Sparkles, Wand2, Palette } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function Editor() {
@@ -61,9 +62,20 @@ export default function Editor() {
 
               <hr className="border-gray-100" />
 
+              {/* 手动取色 */}
+              <section>
+                <div className="flex items-center gap-2 mb-4">
+                  <Palette className="text-purple-600" size={20} />
+                  <h2 className="text-lg font-semibold text-gray-900">3. 手动取色</h2>
+                </div>
+                <ColorPicker />
+              </section>
+
+              <hr className="border-gray-100" />
+
               {/* 信息编辑 */}
               <section>
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">3. 添加信息</h2>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">4. 添加信息</h2>
                 <div className="space-y-4">
                   <LocationInput />
                   <MonthSelector />
